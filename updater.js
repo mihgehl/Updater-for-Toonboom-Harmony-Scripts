@@ -151,7 +151,12 @@ Updater.prototype.updateInfoUI = function () {
 
 Updater.prototype.update = function () {
   // Chained functions that get executed asynchronously, one after another
-  this.updateDownload((onDownloadComplete = this.updateInstall));
+  this.updateDownload.call(
+    this,
+    (onDownloadComplete = function (updateFile) {
+      this.updateInstall.call(this, updateFile);
+    })
+  );
 };
 
 Updater.prototype.updateDownload = function (onDownloadComplete) {
@@ -184,13 +189,21 @@ Updater.prototype.updateInstall = function (updateFile) {
 
   var onEndCallback = function () {
     try {
-      var currentInstall = new QDir(this.packageInfo.packageFolder);
-      currentInstall.removeRecursively();
-      currentInstall.mkpath(currentInstall.path());
-      this.copyFolderRecursively(
+      var tmpFolderPackage = new QDir(
         tmpFolder.path() + "/packages/" + this.packageInfo.packageName,
         this.packageInfo.packageFolder
       );
+
+      if (!tmpFolderPackage.exists()) {
+        this.log("Source folder does not exist.");
+        this.ui.stackedWidget.setCurrentWidget(this.ui.stackedWidget.info);
+        this.log("Updated failed");
+        return;
+      }
+      var currentInstall = new QDir(this.packageInfo.packageFolder);
+      currentInstall.removeRecursively();
+      currentInstall.mkpath(currentInstall.path());
+      this.copyFolderRecursively(tmpFolderPackage.path());
       // TODO: Implement a custom removeRecursively function for filtering out files
       tmpFolder.removeRecursively();
       this.ui.stackedWidget.setCurrentWidget(this.ui.stackedWidget.done);
@@ -212,17 +225,19 @@ Updater.prototype.updateInstall = function (updateFile) {
   }
 
   try {
-    new (require(this.packageInfo.packageFolder +
+    var unZipper = new (require(this.packageInfo.packageFolder +
       "/lib/FileArchiver/sevenzip.js").SevenZip)(
       (parentContext = this),
       (source = updateFile.fileName()),
       (destination = tmpFolder.path()),
       (processStartCallback = onStartCallback),
       (progressCallback = progressCallback),
-      (processEndCallback = onEndCallback)
-      // (filter = "/packages/*"),
-      // (debug = this.debug)
-    ).unzipAsync();
+      (processEndCallback = onEndCallback),
+      (filter = ""),
+      (debug = this.debug)
+    );
+
+    unZipper.unzipAsync();
   } catch (error) {
     MessageLog.trace(error);
   }
