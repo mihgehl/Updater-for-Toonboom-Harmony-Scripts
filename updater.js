@@ -201,8 +201,10 @@ Updater.prototype.updateInstall = function (updateFile) {
       }
       var currentInstall = new QDir(this.packageInfo.packageFolder);
       currentInstall.removeRecursively();
-      currentInstall.mkpath(currentInstall.path());
-      this.copyFolderRecursively(tmpFolderPackage.path());
+      this.copyFolderRecursively(
+        tmpFolderPackage.path(),
+        this.packageInfo.packageFolder
+      );
       // TODO: Implement a custom removeRecursively function for filtering out files
       tmpFolder.removeRecursively();
       this.ui.stackedWidget.setCurrentWidget(this.ui.stackedWidget.done);
