@@ -190,8 +190,7 @@ Updater.prototype.updateInstall = function (updateFile) {
   var onEndCallback = function () {
     try {
       var tmpFolderPackage = new QDir(
-        tmpFolder.path() + "/packages/" + this.packageInfo.packageName,
-        this.packageInfo.packageFolder
+        tmpFolder.path() + "/packages/" + this.packageInfo.packageName
       );
 
       if (!tmpFolderPackage.exists()) {
