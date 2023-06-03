@@ -182,9 +182,7 @@ Updater.prototype.updateInstall = function (updateFile) {
   };
 
   var progressCallback = function (progressPercentage) {
-    if (!isNaN(progressPercentage)) {
-      this.log("Progress > " + progressPercentage + "%");
-    }
+    this.log("Progress > " + progressPercentage + "%");
   };
 
   var onEndCallback = function () {
