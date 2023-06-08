@@ -18,11 +18,15 @@
  * @param { object } packageInfo Object with information about the current package (from configure.js)
  * @param { bool } debug Print debug messages to Message Log
  */
-function Updater(packageInfo, debug) {
-  if (typeof debug === "undefined") var debug = false;
+function Updater(parentContext, packageInfo, onCompleteCallback, debug) {
+  if (typeof parentContext === "undefined") var parentContext = null;
+  if (typeof onCompleteCallback === "undefined") var onCompleteCallback = null;
+  this.debug = debug || false;
 
-  this.debug = debug;
   this.packageInfo = packageInfo;
+
+  this.parentContext = parentContext;
+  this.onCompleteCallback = onCompleteCallback;
 
   this.connection = new (require(this.packageInfo.packageFolder +
     "/lib/Network/network.js").Connection)();
@@ -60,15 +64,6 @@ function Updater(packageInfo, debug) {
 }
 
 Object.defineProperty(Updater.prototype, "packageApiResponse", {
-  // get: function () {
-  //     if (typeof Updater.__proto__.packageApiResponse === "undefined") {
-  //         var response = this.connection.get(this.packageApiURL);
-  //         Updater.__proto__.packageApiResponse = response;
-  //         return response;
-  //     } else {
-  //         return Updater.__proto__.packageApiResponse;
-  //     }
-  // },
   get: function () {
     if (typeof this.apiAnswer === "undefined") {
       var response = this.connection.get(this.packageInfo.packageApiURL);
@@ -144,6 +139,18 @@ Updater.prototype.updateInfoUI = function () {
     this.ui.stackedWidget.info.updateButton.clicked.connect(this, function () {
       this.update.call(this);
     });
+    this.ui.stackedWidget.done.closeAfterUpdate.clicked.connect(
+      this,
+      function () {
+        try {
+          if (!typeof this.onCompleteCallback == "null") {
+            this.onCompleteCallback.call(this.parentContext);
+          }
+        } catch (error) {
+          MessageLog.trace(error);
+        }
+      }
+    );
   } catch (error) {
     MessageLog.trace(error);
   }
@@ -170,7 +177,11 @@ Updater.prototype.updateDownload = function (onDownloadComplete) {
     (context = this),
     (url = this.packageApiResponse.assets[0].browser_download_url),
     (destinationPath = this.packageInfo.packageFolder + "/tmp/update.zip"),
-    (onFinishFunction = onDownloadComplete)
+    (onSuccessCallback = onDownloadComplete),
+    (onErrorCallback = function (errorLog) {
+      MessageLog.trace("Download Failed: " + errorLog);
+      return;
+    })
   );
 };
 
@@ -215,15 +226,15 @@ Updater.prototype.updateInstall = function (updateFile) {
 
   // Create a temporary folder for unzipping
   var tmpFolder = new QDir(
-    fileMapper.toNativePath(
-      specialFolders.temp + "/" + Math.random().toString(36).slice(-8) + "/"
-    )
+    specialFolders.temp + "/" + Math.random().toString(36).slice(-8) + "/"
   );
   if (!tmpFolder.exists()) {
     tmpFolder.mkpath(tmpFolder.path());
   }
 
   try {
+    MessageLog.trace("Source File: " + updateFile.fileName());
+    MessageLog.trace("Destination: " + tmpFolder.path());
     var unZipper = new (require(this.packageInfo.packageFolder +
       "/lib/FileArchiver/sevenzip.js").SevenZip)(
       (parentContext = this),
