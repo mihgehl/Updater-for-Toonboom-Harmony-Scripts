@@ -18,12 +18,11 @@
  * @param { object } packageInfo Object with information about the current package (from configure.js)
  * @param { bool } debug Print debug messages to Message Log
  */
-function Updater(parentContext, packageInfo, onCompleteCallback, debug) {
-  if (typeof parentContext === "undefined") var parentContext = null;
+function Updater(parentContext, packageInfo, onCompleteCallback) {
   if (typeof onCompleteCallback === "undefined") var onCompleteCallback = null;
-  this.debug = debug || false;
 
   this.packageInfo = packageInfo;
+  this.debug = packageInfo.debugMode;
 
   this.parentContext = parentContext;
   this.onCompleteCallback = onCompleteCallback;
